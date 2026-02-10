@@ -9,6 +9,7 @@ import RequestDetailModal from '../../components/RequestDetailModal'
 import { useAuth } from '../../context/AuthContext'
 import RequestTable from '../../components/ui/RequestTable'
 import RequestFilters from '../../components/RequestFilters'
+import { StatusDistributionChart, DailyActivityChart } from '../../components/analytics/AnalyticsCharts'
 import toast from 'react-hot-toast'
 
 export default function AnalyticsPage() {
@@ -26,7 +27,7 @@ export default function AnalyticsPage() {
     const [statusFilter, setStatusFilter] = useState('ALL')
     const [deptFilter, setDeptFilter] = useState('ALL')
     const [searchFilter, setSearchFilter] = useState('')
-    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
+    const [viewMode, setViewMode] = useState<'grid' | 'table'>('table')
     const [dateStart, setDateStart] = useState('')
     const [dateEnd, setDateEnd] = useState('')
 
@@ -167,6 +168,19 @@ export default function AnalyticsPage() {
                     color="emerald"
                     icon={<svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
                 />
+            </div>
+
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <h3 className="text-lg font-bold text-gray-900 tracking-tight mb-6">Activité des 7 derniers jours</h3>
+                    {/* Dynamic import or direct usage if possible. Direct usage is fine since we are in SPA */}
+                    <DailyActivityChart requests={requests} />
+                </div>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <h3 className="text-lg font-bold text-gray-900 tracking-tight mb-6">État des Demandes</h3>
+                    <StatusDistributionChart requests={requests} />
+                </div>
             </div>
 
             {/* Department Breakdown */}

@@ -1,16 +1,19 @@
 import { Fragment, useState, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import type { PurchaseRequest } from '../types/request'
+import type { PurchaseRequest, Quote } from '../types/request'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { getStatusLabel, formatCurrency, getStageLabel } from '../utils/formatting'
 import { getStorageUrl } from '../utils/config'
 import QuoteList from './QuoteList'
 import QuoteUploadModal from './QuoteUploadModal'
+import QuoteDetailModal from './QuoteDetailModal'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import { Button } from './ui/Button'
+import AnalyticalSelector from './AnalyticalSelector'
+import { TableScrollArea } from './ui/TableScrollArea'
 
 interface RequestDetailModalProps {
     isOpen: boolean
@@ -23,9 +26,17 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
     const [request, setRequest] = useState<PurchaseRequest | undefined>(initialRequest)
     const [isQuoteUploadOpen, setIsQuoteUploadOpen] = useState(false)
     const [processing, setProcessing] = useState(false)
-    const [downPayment, setDownPayment] = useState('')
-    const [paymentDueAt, setPaymentDueAt] = useState('')
+
+    // const [paymentDueAt, setPaymentDueAt] = useState('')
     const [invoiceFile, setInvoiceFile] = useState<File | null>(null)
+    
+    // Analytical Editing State
+    const [isEditingAnalytical, setIsEditingAnalytical] = useState(false)
+    const [newCodeId, setNewCodeId] = useState<number | null>(null)
+
+    // Quote Detail Modal State
+    const [selectedQuoteForDetail, setSelectedQuoteForDetail] = useState<Quote | null>(null)
+    const [isQuoteDetailOpen, setIsQuoteDetailOpen] = useState(false)
 
     useEffect(() => {
         setRequest(initialRequest)
@@ -64,6 +75,43 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
         }
     }
 
+    const handleViewQuoteDetails = (quote: Quote) => {
+        setSelectedQuoteForDetail(quote)
+        setIsQuoteDetailOpen(true)
+    }
+
+    const handleDeleteQuote = async (quoteId: number) => {
+        if (!request) return
+        setProcessing(true)
+        try {
+            await api.delete(`/quotes/${quoteId}`)
+            toast.success('Devis supprimé avec succès')
+            refreshRequest()
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Erreur lors de la suppression')
+            console.error(error)
+        } finally {
+            setProcessing(false)
+        }
+    }
+
+    const handlePublishQuotes = async () => {
+        if (!request) return
+        if (!confirm('Publier les devis ? Le demandeur pourra ensuite faire son choix.')) return
+        setProcessing(true)
+        try {
+            await api.post(`/purchase-requests/${request.id}/publish-quotes`)
+            toast.success('Devis publiés avec succès')
+            refreshRequest()
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Erreur lors de la publication')
+            console.error(error)
+        } finally {
+            setProcessing(false)
+        }
+    }
+
+
     const handleConfirmPayment = async () => {
         if (!request) return
         if (!confirm('Confirmer que le solde de cette facture a été payé ?')) return
@@ -95,7 +143,31 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
         }
     }
 
-    if (!request) return null
+    const handleUpdateAnalyticalCode = async () => {
+        if (!request || !newCodeId) return
+        setProcessing(true)
+        try {
+            const res = await api.patch(`/purchase-requests/${request.id}/analytical-code`, { 
+                analyticalCodeId: newCodeId 
+            })
+            toast.success('Imputation analytique mise à jour')
+            setRequest(res.data)
+            setIsEditingAnalytical(false)
+        } catch (e) {
+            toast.error('Erreur lors de la mise à jour de l\'imputation')
+        } finally {
+            setProcessing(false)
+        }
+    }
+
+    if (!request) {
+        return null
+    }
+
+    const canEditAnalytical = user?.role === 'ACCOUNTANT' || 
+                             user?.role === 'BUYER' || 
+                             user?.role === 'MANAGER' || 
+                             request.userId === user?.id
 
     return (
         <>
@@ -130,8 +202,13 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
                                 <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-start bg-white z-10 shrink-0">
                                     <div>
                                         <div className="flex items-center gap-3 mb-1">
-                                            <Dialog.Title as="h3" className="text-2xl font-bold text-gray-900">
-                                                Demande #{request.id}
+                                            <Dialog.Title as="h3" className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                                Détails de la demande
+                                                {request.sequenceNumber && (
+                                                    <span className="text-sm font-mono font-medium text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
+                                                        {request.sequenceNumber}
+                                                    </span>
+                                                )}
                                             </Dialog.Title>
                                             <div className="flex flex-col gap-1 items-end">
                                                 <div className="flex gap-2">
@@ -149,7 +226,7 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
                                                         {getStageLabel(request.stage)}
                                                     </span>
                                                 </div>
-                                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Référence #{request.id}</span>
+
                                             </div>
                                         </div>
                                         <div className="flex items-center text-sm text-gray-500 gap-4">
@@ -178,12 +255,14 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
                                             </span>
                                         </div>
                                     </div>
-                                    <button onClick={onClose} className="rounded-full p-2 hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors bg-gray-50">
-                                        <span className="sr-only">Fermer</span>
-                                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
+                                    <div className="flex items-center gap-4">
+                                        <button onClick={onClose} className="rounded-full p-2 hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors bg-gray-50 border border-gray-100">
+                                            <span className="sr-only">Fermer</span>
+                                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                                 
                                 {/* Scrollable Content */}
@@ -202,43 +281,52 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
                                                 <p className="text-gray-600 leading-relaxed text-sm bg-gray-50 p-4 rounded-lg">
                                                     {request.description || 'Aucune description disponible.'}
                                                 </p>
-                                                
-                                                {/* Items Table */}
-                                                <div className="mt-6">
-                                                    <div className="overflow-hidden rounded-xl border border-gray-200">
-                                                        <table className="min-w-full divide-y divide-gray-200">
-                                                            <thead className="bg-gray-50">
-                                                                <tr>
-                                                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Article</th>
-                                                                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Qté</th>
-                                                                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">P.U.</th>
-                                                                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Total</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody className="divide-y divide-gray-200 bg-white">
-                                                                 {request.items.map((item, idx) => (
-                                                                    <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                                                                        <td className="px-4 py-3 text-sm text-gray-900 font-medium">{item.description}</td>
-                                                                        <td className="px-4 py-3 text-sm text-gray-500 text-right tabular-nums">{item.quantity}</td>
-                                                                        <td className="px-4 py-3 text-sm text-gray-500 text-right tabular-nums">{formatCurrency(item.unitPrice || 0)}</td>
-                                                                        <td className="px-4 py-3 text-sm text-gray-900 text-right font-bold tabular-nums">
-                                                                            {formatCurrency(item.quantity * (item.unitPrice || 0))}
-                                                                        </td>
-                                                                    </tr>
-                                                                ))}
-                                                                <tr className="bg-indigo-50/30">
-                                                                    <td colSpan={3} className="px-4 py-3 text-right text-xs font-bold text-indigo-900 uppercase tracking-wider">Total Estimé</td>
-                                                                    <td className="px-4 py-3 text-base font-bold text-indigo-600 text-right tabular-nums">
-                                                                        {request.totalEstimatedAmount ? formatCurrency(request.totalEstimatedAmount) : 'N/A'}
-                                                                    </td>
-                                                                </tr>
-                                                            </tbody>
-                                                        </table>
+
+                                                {/* Selected Quote Items Table */}
+                                                {request.selectedQuote && request.selectedQuote.items && request.selectedQuote.items.length > 0 && (
+                                                    <div className="mt-6">
+                                                        <h4 className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                            Articles du Devis Sélectionné - {request.selectedQuote.supplierName}
+                                                        </h4>
+                                                        <div className="overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50/30">
+                                                            <TableScrollArea>
+                                                                <table className="min-w-full divide-y divide-emerald-200">
+                                                                    <thead className="bg-emerald-50">
+                                                                        <tr>
+                                                                            <th className="px-4 py-3 text-left text-xs font-bold text-emerald-600 uppercase tracking-wider">#</th>
+                                                                            <th className="px-4 py-3 text-left text-xs font-bold text-emerald-600 uppercase tracking-wider">Désignation</th>
+                                                                            <th className="px-4 py-3 text-right text-xs font-bold text-emerald-600 uppercase tracking-wider">Quantité</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody className="divide-y divide-emerald-100 bg-white">
+                                                                        {request.selectedQuote.items.map((item, idx) => (
+                                                                            <tr key={idx} className="hover:bg-emerald-50/50 transition-colors">
+                                                                                <td className="px-4 py-3 text-sm text-emerald-400">{idx + 1}</td>
+                                                                                <td className="px-4 py-3 text-sm text-gray-900 font-medium">{item.description}</td>
+                                                                                <td className="px-4 py-3 text-sm text-gray-600 text-right tabular-nums font-mono">{item.quantity}</td>
+                                                                            </tr>
+                                                                        ))}
+                                                                        <tr className="bg-emerald-100/50">
+                                                                            <td colSpan={2} className="px-4 py-3 text-right text-xs font-bold text-emerald-700 uppercase tracking-wider">Montant Devis</td>
+                                                                            <td className="px-4 py-3 text-right text-sm font-black text-emerald-800 tabular-nums">
+                                                                                {formatCurrency(request.selectedQuote.amount || 0)}
+                                                                            </td>
+                                                                        </tr>
+                                                                    </tbody>
+                                                                </table>
+                                                            </TableScrollArea>
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                )}
+
                                             </div>
 
                                             {/* Sourcing / Quotes */}
+                                            {/* Only show if Stage is appropriate AND (Status is PENDING or REJECTED - i.e. editable) OR if we just want to view existing quotes history */}
+                                            {/* Actually, we should always show the history if quotes exist. But the ACTIONS (Add, Submit) should be restricted. */}
                                             {(request.stage === 'NEED' || request.stage === 'SOURCING' || (request.quotes && request.quotes.length > 0)) && (
                                                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 overflow-hidden relative">
                                                     <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
@@ -247,28 +335,85 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
                                                             <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                                             Sourcing & Devis
                                                         </h4>
-                                                        {user?.role === 'BUYER' && request.stage !== 'VALIDATION' && (
-                                                            <Button size="sm" variant="outline" onClick={() => setIsQuoteUploadOpen(true)} className="text-xs">
-                                                                + Ajouter un devis
-                                                            </Button>
-                                                        )}
+                                                        <div className="flex items-center gap-2">
+                                                            {/* Publish button - BUYER + Quotes exist + Not yet published + No selection made */}
+                                                            {user?.role === 'BUYER' && 
+                                                             request.quotes && request.quotes.length > 0 &&
+                                                             !request.quotesPublished && 
+                                                             !request.selectedQuoteId && (
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    variant="success" 
+                                                                    onClick={handlePublishQuotes} 
+                                                                    disabled={processing}
+                                                                    className="text-xs"
+                                                                >
+                                                                    <svg className="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                    </svg>
+                                                                    Publier les devis
+                                                                </Button>
+                                                            )}
+                                                            {/* Add quote button - BUYER + PENDING/REJECTED + Correct stages + NO selection made yet */}
+                                                            {user?.role === 'BUYER' && 
+                                                             (request.status === 'PENDING' || request.status === 'REJECTED') && 
+                                                             request.stage !== 'VALIDATION' && 
+                                                             request.stage !== 'INVOICED' && 
+                                                             request.stage !== 'PENDING_PAYMENT' &&
+                                                             !request.selectedQuoteId && (
+                                                                <Button size="sm" variant="outline" onClick={() => setIsQuoteUploadOpen(true)} className="text-xs">
+                                                                    + Ajouter un devis
+                                                                </Button>
+                                                            )}
+                                                        </div>
                                                     </div>
+
+                                                    {/* Message for non-buyers when quotes not published */}
+                                                    {user?.role !== 'BUYER' && user?.role !== 'ADMIN' && !request.quotesPublished && request.stage === 'SOURCING' && (
+                                                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                                                            <div className="flex items-center gap-2 text-amber-700">
+                                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                </svg>
+                                                                <span className="text-sm font-medium">Les devis sont en cours de préparation par l'équipe Achats.</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
 
                                                     <QuoteList 
                                                         quotes={request.quotes || []}
                                                         selectedQuoteId={request.selectedQuoteId}
-                                                        isSelectionEnabled={user?.id === request.userId && request.stage !== 'VALIDATION' && !request.selectedQuoteId}
+                                                        isSelectionEnabled={
+                                                            user?.id === request.userId && 
+                                                            (request.status === 'PENDING' || request.status === 'REJECTED') &&
+                                                            request.stage !== 'VALIDATION' && 
+                                                            request.stage !== 'INVOICED' && 
+                                                            request.stage !== 'PENDING_PAYMENT' &&
+                                                            !request.selectedQuoteId &&
+                                                            request.quotesPublished === true
+                                                        }
                                                         onSelect={handleSelectQuote}
+                                                        onViewDetails={handleViewQuoteDetails}
+                                                        onDelete={handleDeleteQuote}
+                                                        canDelete={
+                                                            user?.role === 'BUYER' && 
+                                                            !request.selectedQuoteId &&
+                                                            (request.status === 'PENDING' || request.status === 'REJECTED')
+                                                        }
                                                     />
 
-                                                    {user?.role === 'BUYER' && request.stage !== 'VALIDATION' && request.selectedQuoteId && (
+                                                    {/* Conditions pour soumettre : BUYER + PENDING/REJECTED + Quote Selected + Pas déjà en validation/facturé */}
+                                                    {user?.role === 'BUYER' && 
+                                                     (request.status === 'PENDING' || request.status === 'REJECTED') &&
+                                                     request.stage !== 'VALIDATION' && 
+                                                     request.stage !== 'INVOICED' && 
+                                                     request.stage !== 'PENDING_PAYMENT' && 
+                                                     request.selectedQuoteId && (
                                                         <div className="mt-6 pt-6 border-t border-gray-100 flex justify-end">
                                                             <Button onClick={handleFinalize} disabled={processing} className="w-full sm:w-auto shadow-lg shadow-indigo-200">
                                                                 {processing ? 'Traitement...' : 'Soumettre pour Validation'}
                                                             </Button>
-                                                            {/* Final Invoice Section (New) */}
-
-                                        </div>
+                                                        </div>
                                                     )}
                                                 </div>
                                             )}
@@ -318,12 +463,7 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
                                                                 <span className="opacity-75">Montant Final :</span>
                                                                 <span className="font-bold">{formatCurrency(request.totalEstimatedAmount || 0)}</span>
                                                             </div>
-                                                            {request.downPayment && (
-                                                                <div className="flex justify-between">
-                                                                    <span className="opacity-75">Acompte versé :</span>
-                                                                    <span className="font-bold">{formatCurrency(request.downPayment)}</span>
-                                                                </div>
-                                                            )}
+
                                                             <div className="flex justify-between items-center text-emerald-900 bg-emerald-100/50 px-2 py-1.5 rounded-md mt-1">
                                                                 <span className="font-semibold italic">Solde payé le {request.paidAt ? format(new Date(request.paidAt), 'dd/MM/yyyy') : 'confirmé'}</span>
                                                                 {request.paymentDueAt && (
@@ -334,7 +474,7 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
                                                     </div>
                                                 ) : request.stage === 'PENDING_PAYMENT' ? (
                                                     <div className="bg-amber-50 rounded-lg p-4 border border-amber-100">
-                                                        <div className="flex items-center justify-between">
+                                                        <div className="flex items-center justify-between mb-4">
                                                             <div className="flex items-center gap-3">
                                                                 <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
                                                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -343,29 +483,54 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
                                                                     <p className="text-sm font-bold text-gray-900">En attente de paiement final</p>
                                                                     <p className="text-xs text-gray-600">
                                                                         Facture N° <span className="font-mono font-bold">{request.invoiceNumber}</span>
-                                                                        {request.paymentDueAt && ` • Échéance : ${format(new Date(request.paymentDueAt), 'dd/MM/yyyy')}`}
                                                                     </p>
                                                                 </div>
                                                             </div>
                                                             
-                                                            {user?.role === 'ACCOUNTANT' && (
+                                                            {(user?.role === 'ACCOUNTANT' || user?.role === 'BUYER') && (
                                                                 <Button 
                                                                     onClick={handleConfirmPayment}
                                                                     disabled={processing}
                                                                     size="sm"
-                                                                    className="bg-amber-600 hover:bg-amber-700 text-white shadow-sm"
+                                                                    className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
                                                                 >
                                                                     Confirmer le Paiement
                                                                 </Button>
                                                             )}
                                                         </div>
-                                                        
-                                                        {request.downPayment && (
-                                                            <div className="mt-3 pt-3 border-t border-amber-100 flex justify-between text-xs text-amber-800 font-medium">
-                                                                <span>Acompte payé : {formatCurrency(request.downPayment)}</span>
-                                                                <span>Reste à payer : {formatCurrency((request.totalEstimatedAmount || 0) - request.downPayment)}</span>
+
+                                                        {request.invoiceFilePath && (
+                                                            <div className="mb-4">
+                                                                <a 
+                                                                    href={`${import.meta.env.VITE_STORAGE_URL}${request.invoiceFilePath}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="inline-flex items-center gap-2 text-xs font-bold text-amber-700 hover:text-amber-800 hover:underline"
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                                                    Télécharger la facture
+                                                                </a>
                                                             </div>
                                                         )}
+
+                                                        <div className="pt-3 border-t border-amber-200/50 flex flex-col gap-1.5 text-[11px] text-amber-800">
+                                                            <div className="flex justify-between">
+                                                                <span className="opacity-75">Facture reçue le :</span>
+                                                                <span className="font-bold">
+                                                                    {request.invoiceReceivedAt ? format(new Date(request.invoiceReceivedAt), 'dd/MM/yyyy') : format(new Date(request.createdAt), 'dd/MM/yyyy')}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="opacity-75">Montant Final :</span>
+                                                                <span className="font-bold">{formatCurrency(request.totalEstimatedAmount || 0)}</span>
+                                                            </div>
+                                                            {request.paymentDueAt && (
+                                                                <div className="flex justify-between items-center text-amber-900 bg-amber-100/50 px-2 py-1.5 rounded-md mt-1">
+                                                                    <span className="font-semibold">Échéance de paiement :</span>
+                                                                    <span className="font-bold">{format(new Date(request.paymentDueAt), 'dd/MM/yyyy')}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 ) : (
                                                     user?.role === 'BUYER' ? (
@@ -373,10 +538,7 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
                                                             onSubmit={async (e) => {
                                                                 e.preventDefault();
                                                                 
-                                                                if (paymentDueAt && !downPayment) {
-                                                                    toast.error("Un acompte est obligatoire si une date d'échéance est fixée.");
-                                                                    return;
-                                                                }
+
 
                                                                 setProcessing(true);
                                                                 try {
@@ -411,41 +573,11 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
                                                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Échéance (Facultatif)</label>
                                                                     <input type="date" name="paymentDueAt" 
                                                                         className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5 px-3 bg-gray-50/50 focus:bg-white transition-colors" 
-                                                                        onChange={(e) => setPaymentDueAt(e.target.value)}
                                                                     />
                                                                 </div>
                                                             </div>
 
-                                                            <div className={`p-4 rounded-xl border transition-colors ${paymentDueAt ? 'bg-amber-50 border-amber-200' : 'bg-indigo-50/50 border-indigo-100/50'}`}>
-                                                                <div className="flex justify-between items-center mb-2">
-                                                                    <label className={`block text-sm font-semibold ${paymentDueAt ? 'text-amber-900' : 'text-indigo-900'}`}>
-                                                                        Acompte / Paiement partiel {paymentDueAt && <span className="text-rose-500">*</span>}
-                                                                    </label>
-                                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${paymentDueAt ? 'text-amber-700 bg-amber-100' : 'text-indigo-600 bg-indigo-100'}`}>
-                                                                        {paymentDueAt ? 'Requis' : 'Optionnel'}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="flex gap-4 items-center">
-                                                                    <div className="flex-1 relative">
-                                                                        <input 
-                                                                            type="number" 
-                                                                            name="downPayment" 
-                                                                            className="block w-full rounded-xl border-indigo-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5 px-3 pl-4 bg-white"
-                                                                            placeholder="Montant versé..."
-                                                                            onChange={(e) => setDownPayment(e.target.value)} 
-                                                                        />
-                                                                        <span className="absolute right-3 top-2.5 text-gray-400 text-xs font-bold">FCFA</span>
-                                                                    </div>
-                                                                    {downPayment && request.totalEstimatedAmount && (
-                                                                        <div className="text-right min-w-[120px]">
-                                                                            <p className="text-[10px] text-gray-400 uppercase font-bold">Reste à payer</p>
-                                                                            <p className="text-sm font-bold text-gray-900">
-                                                                                {formatCurrency(Math.max(0, request.totalEstimatedAmount - (parseFloat(downPayment) || 0)))}
-                                                                            </p>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
+
 
                                                             <div>
                                                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Fichier (PDF/Image)</label>
@@ -493,6 +625,117 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
 
                                         {/* Sidebar Stats */}
                                         <div className="space-y-6">
+                                            
+                                            {/* Analytical Imputation */}
+                                            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 overflow-hidden relative">
+                                                <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                                                <div className="flex justify-between items-center mb-4">
+                                                    <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                                                        <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                                                        Imputation
+                                                    </h4>
+                                                    {!isEditingAnalytical && canEditAnalytical && (
+                                                        <button 
+                                                            onClick={() => setIsEditingAnalytical(true)} 
+                                                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 uppercase bg-indigo-50 px-2 py-1 rounded transition-colors"
+                                                        >
+                                                            Modifier
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                {isEditingAnalytical ? (
+                                                    <div className="space-y-4">
+                                                        <AnalyticalSelector 
+                                                            onCodeSelect={setNewCodeId} 
+                                                            initialAnalyticalCode={request.analyticalCode}
+                                                        />
+                                                        <div className="flex gap-2 justify-end">
+                                                            <Button size="sm" variant="ghost" onClick={() => setIsEditingAnalytical(false)} className="text-xs">Annuler</Button>
+                                                            <Button size="sm" onClick={handleUpdateAnalyticalCode} disabled={!newCodeId || processing} className="text-xs">Enregistrer</Button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-3">
+                                                        {request.analyticalCode ? (
+                                                            <>
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Code Général (L1)</span>
+                                                                    <div className="flex items-center gap-2">
+                                                                        {(() => {
+                                                                            const cat = request.analyticalCode.activity?.project?.catalog || request.analyticalCode.project?.catalog
+                                                                            if (!cat) return <span className="text-gray-400 italic text-sm">N/A</span>
+                                                                            return (
+                                                                                <>
+                                                                                    {cat.code && (
+                                                                                        <span className="text-sm font-black text-indigo-600 font-mono bg-indigo-50 px-2 py-0.5 rounded ring-1 ring-indigo-100">
+                                                                                            {cat.code}
+                                                                                        </span>
+                                                                                    )}
+                                                                                    <span className="text-sm font-semibold text-gray-700">{cat.name}</span>
+                                                                                </>
+                                                                            )
+                                                                        })()}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Code Spécifique (L2)</span>
+                                                                    <div className="flex items-center gap-2">
+                                                                        {(() => {
+                                                                            const proj = request.analyticalCode.activity?.project || request.analyticalCode.project
+                                                                            if (!proj) return <span className="text-gray-400 italic text-sm">N/A</span>
+                                                                            return (
+                                                                                <>
+                                                                                    {proj.code && (
+                                                                                        <span className="text-sm font-black text-indigo-600 font-mono bg-indigo-50 px-2 py-0.5 rounded ring-1 ring-indigo-100">
+                                                                                            {proj.code}
+                                                                                        </span>
+                                                                                    )}
+                                                                                    <span className="text-sm font-semibold text-gray-700">{proj.name}</span>
+                                                                                </>
+                                                                            )
+                                                                        })()}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Code Département (L3)</span>
+                                                                    <div className="flex items-center gap-2">
+                                                                        {(() => {
+                                                                            const act = request.analyticalCode.activity
+                                                                            if (!act) return <span className="text-gray-400 italic text-sm">N/A</span>
+                                                                            return (
+                                                                                <>
+                                                                                    {act.code && (
+                                                                                        <span className="text-sm font-black text-indigo-600 font-mono bg-indigo-50 px-2 py-0.5 rounded ring-1 ring-indigo-100">
+                                                                                            {act.code}
+                                                                                        </span>
+                                                                                    )}
+                                                                                    <span className="text-sm font-semibold text-gray-700">{act.name}</span>
+                                                                                </>
+                                                                            )
+                                                                        })()}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Code Identitaire (L4)</span>
+                                                                    <div className="flex flex-wrap items-center gap-2">
+                                                                        <span className="text-sm font-black text-indigo-600 font-mono bg-indigo-50 px-2 py-0.5 rounded ring-1 ring-indigo-100">
+                                                                            {request.analyticalCode.code}
+                                                                        </span>
+                                                                        <span className="text-xs text-gray-500 italic truncate max-w-[150px]">{request.analyticalCode.label}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <div className="p-4 bg-amber-50 rounded-lg border border-amber-100 flex items-center gap-3">
+                                                                <svg className="w-5 h-5 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                                                <p className="text-xs text-amber-800 font-medium leading-tight">Aucune imputation définie pour le moment.</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+
                                             {/* Approval Workflow */}
                                             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                                                 <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -587,7 +830,9 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
                                                                   audit.action === 'REJECTED' ? 'bg-rose-500' :
                                                                   audit.action === 'STATUS_CHANGE' ? 'bg-indigo-500' : 
                                                                   audit.action === 'QUOTE_ADDED' ? 'bg-purple-500' :
-                                                                  audit.action === 'QUOTE_SELECTED' ? 'bg-teal-500' : 'bg-gray-400'
+                                                                  audit.action === 'QUOTE_SELECTED' ? 'bg-teal-500' :
+                                                                  audit.action === 'QUOTES_PUBLISHED' ? 'bg-emerald-400' :
+                                                                  audit.action === 'QUOTE_DELETED' ? 'bg-red-400' : 'bg-gray-400'
                                                                 }`}></div>
                                                                 
                                                             <div className="flex flex-col">
@@ -596,6 +841,7 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
                                                                      audit.action === 'UPDATED' ? (
                                                                          audit.details?.action === 'INVOICE_UPLOADED' ? `Facture finale ajoutée${audit.details?.invoiceNumber ? ` #${audit.details.invoiceNumber}` : ''}` :
                                                                          audit.details?.action === 'PAYMENT_CONFIRMED' ? 'Paiement confirmé' :
+                                                                         audit.details?.action === 'ANALYTICAL_CODE_UPDATED' ? 'Imputation analytique modifiée' :
                                                                          audit.details?.stage === 'VALIDATION' 
                                                                          ? 'Envoyé pour validation' 
                                                                          : 'Détails de la demande modifiés'
@@ -604,6 +850,8 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
                                                                      audit.action === 'REJECTED' ? 'Demande rejetée' :
                                                                      audit.action === 'QUOTE_ADDED' ? 'Nouveau devis ajouté' :
                                                                      audit.action === 'QUOTE_SELECTED' ? 'Fournisseur sélectionné' :
+                                                                     audit.action === 'QUOTES_PUBLISHED' ? 'Devis publiés' :
+                                                                     audit.action === 'QUOTE_DELETED' ? 'Devis supprimé' :
                                                                      audit.action === 'STATUS_CHANGE' ? (
                                                                          audit.details?.new_status === 'PROCESSING' 
                                                                            ? 'Traitement en cours' 
@@ -655,17 +903,29 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
                                         >
                                             Fermer
                                         </button>
-                                        {request.status === 'APPROVED' && (
-                                            <button
-                                                type="button"
-                                                className="rounded-xl border border-transparent bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 focus:outline-none transition-all flex items-center gap-2 transform hover:-translate-y-0.5"
-                                                onClick={() => window.open(`/print-request/${request.id}`, '_blank')}
-                                            >
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                                </svg>
-                                                Imprimer
-                                            </button>
+                                        {(request.status === 'APPROVED' || (['VALIDATION', 'PENDING_PAYMENT', 'INVOICED'].includes(request.stage) && request.selectedQuoteId)) && (
+                                            <>
+                                                {request.selectedQuoteId && (
+                                                    <button
+                                                        type="button"
+                                                        className="rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-2.5 text-sm font-bold text-indigo-700 hover:bg-indigo-100 focus:outline-none transition-all flex items-center gap-2"
+                                                        onClick={() => window.open(`/purchase-order/${request.id}`, '_blank')}
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                                        Bon de Commande
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    className="rounded-xl border border-transparent bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 focus:outline-none transition-all flex items-center gap-2 transform hover:-translate-y-0.5"
+                                                    onClick={() => window.open(`/print-request/${request.id}`, '_blank')}
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                                    </svg>
+                                                    Imprimer
+                                                </button>
+                                            </>
                                         )}
                                     </div>
                                 </div>
@@ -680,6 +940,14 @@ export default function RequestDetailModal({ isOpen, onClose, request: initialRe
             onClose={() => setIsQuoteUploadOpen(false)}
             requestId={request.id}
             onSuccess={refreshRequest}
+        />
+        <QuoteDetailModal
+            isOpen={isQuoteDetailOpen}
+            onClose={() => {
+                setIsQuoteDetailOpen(false)
+                setSelectedQuoteForDetail(null)
+            }}
+            quote={selectedQuoteForDetail}
         />
         </>
     )

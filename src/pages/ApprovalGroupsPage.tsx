@@ -5,6 +5,7 @@ import type { ApprovalGroup } from '../types/auth'
 import toast from 'react-hot-toast'
 import ApprovalGroupModal from '../components/ApprovalGroupModal'
 import ApprovalGroupCard from '../components/ui/ApprovalGroupCard'
+import { TableScrollArea } from '../components/ui/TableScrollArea'
 
 export default function ApprovalGroupsPage() {
     const navigate = useNavigate()
@@ -120,45 +121,47 @@ export default function ApprovalGroupsPage() {
                     </div>
                 ) : (
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-100">
-                            <thead className="bg-gray-50/50">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nom</th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Niveau</th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Intervalle (FCFA)</th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Portée</th>
-                                    <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-100">
-                                {groups.map(group => (
-                                    <tr key={group.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-bold text-gray-900">{group.name}</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold w-fit">
-                                                Niveau {group.level}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-600 font-medium">
-                                                {new Intl.NumberFormat('fr-FR').format(group.minAmount)} - {new Intl.NumberFormat('fr-FR').format(group.maxAmount)}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${group.scope === 'GLOBAL' ? 'bg-indigo-900 text-white' : 'bg-gray-100 text-gray-500'}`}>
-                                                {group.scope === 'GLOBAL' ? '🌍 Globale' : '🏢 Locale'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button onClick={() => handleEdit(group)} className="text-indigo-600 hover:text-indigo-900 font-bold mr-4">Modifier</button>
-                                            <button onClick={() => handleDelete(group.id)} className="text-rose-600 hover:text-rose-900 font-bold">Supprimer</button>
-                                        </td>
+                        <TableScrollArea>
+                            <table className="min-w-full divide-y divide-gray-100">
+                                <thead className="bg-gray-50/50">
+                                    <tr>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nom</th>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Niveau</th>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Intervalle (FCFA)</th>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Portée</th>
+                                        <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-100">
+                                    {groups.map(group => (
+                                        <tr key={group.id} className="hover:bg-gray-50/50 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm font-bold text-gray-900">{group.name}</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold w-fit">
+                                                    Niveau {group.level}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm text-gray-600 font-medium">
+                                                    {new Intl.NumberFormat('fr-FR').format(group.minAmount)} - {new Intl.NumberFormat('fr-FR').format(group.maxAmount)}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${group.scope === 'GLOBAL' ? 'bg-indigo-900 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                                                    {group.scope === 'GLOBAL' ? '🌍 Globale' : '🏢 Locale'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <button onClick={() => handleEdit(group)} className="text-indigo-600 hover:text-indigo-900 font-bold mr-4">Modifier</button>
+                                                <button onClick={() => handleDelete(group.id)} className="text-rose-600 hover:text-rose-900 font-bold">Supprimer</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </TableScrollArea>
                     </div>
                 )}
             </div>

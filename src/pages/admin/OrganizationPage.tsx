@@ -7,6 +7,8 @@ import type { Entity, Department } from '../../types/organization'
 import EntityModal from '../../components/admin/EntityModal'
 import DepartmentModal from '../../components/admin/DepartmentModal'
 import { useNavigate } from 'react-router-dom'
+import { TableScrollArea } from '../../components/ui/TableScrollArea'
+import { getStorageUrl } from '../../utils/config'
 
 function classNames(...classes: string[]) {
     return classes.filter(Boolean).join(' ')
@@ -143,9 +145,15 @@ export default function OrganizationPage() {
                                     <div className="absolute top-0 right-0 h-32 w-32 bg-indigo-50/50 rounded-bl-full translate-x-8 -translate-y-8 group-hover:scale-125 transition-transform duration-500" />
                                     
                                     <div className="flex items-start justify-between mb-6 relative z-10">
-                                         <div className="h-14 w-14 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-lg shadow-indigo-200">
-                                             {entity.name.charAt(0)}
-                                         </div>
+                                         {entity.logo ? (
+                                             <div className="h-14 w-14 rounded-xl overflow-hidden shadow-lg shadow-indigo-200 border border-gray-100 bg-white flex items-center justify-center">
+                                                 <img src={getStorageUrl(entity.logo)} alt={entity.name} className="h-full w-full object-contain p-1" />
+                                             </div>
+                                         ) : (
+                                             <div className="h-14 w-14 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-lg shadow-indigo-200">
+                                                 {entity.name.charAt(0)}
+                                             </div>
+                                         )}
                                          <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
                                              <button 
                                                 onClick={(e) => { e.stopPropagation(); handleDeleteEntity(entity.id); }}
@@ -197,53 +205,55 @@ export default function OrganizationPage() {
                         </div>
                         
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nom du Service</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Entité de rattachement</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date création</th>
-                                        <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {departments.map((dept) => (
-                                        <tr key={dept.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center">
-                                                    <div className="h-8 w-8 rounded bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm mr-3">
-                                                        {dept.name.charAt(0)}
-                                                    </div>
-                                                    <div className="text-sm font-medium text-gray-900">{dept.name}</div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {dept.entity ? (
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                                        {dept.entity.name}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-xs text-gray-400 italic">Non rattaché</span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {new Date(dept.createdAt).toLocaleDateString()}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <button onClick={() => openDeptModal(dept)} className="text-indigo-600 hover:text-indigo-900 mr-4 font-semibold">Éditer</button>
-                                                <button onClick={() => handleDeleteDept(dept.id)} className="text-red-400 hover:text-red-600">Supprimer</button>
-                                            </td>
+                            <TableScrollArea>
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nom du Service</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Entité de rattachement</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date création</th>
+                                            <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
                                         </tr>
-                                    ))}
-                                    {departments.length === 0 && (
-                                         <tr>
-                                             <td colSpan={4} className="px-6 py-10 text-center text-sm text-gray-500 italic">
-                                                 Aucun service configuré pour le moment.
-                                             </td>
-                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {departments.map((dept) => (
+                                            <tr key={dept.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center">
+                                                        <div className="h-8 w-8 rounded bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm mr-3">
+                                                            {dept.name.charAt(0)}
+                                                        </div>
+                                                        <div className="text-sm font-medium text-gray-900">{dept.name}</div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {dept.entity ? (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                                            {dept.entity.name}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400 italic">Non rattaché</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    {new Date(dept.createdAt).toLocaleDateString()}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                    <button onClick={() => openDeptModal(dept)} className="text-indigo-600 hover:text-indigo-900 mr-4 font-semibold">Éditer</button>
+                                                    <button onClick={() => handleDeleteDept(dept.id)} className="text-red-400 hover:text-red-600">Supprimer</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {departments.length === 0 && (
+                                             <tr>
+                                                 <td colSpan={4} className="px-6 py-10 text-center text-sm text-gray-500 italic">
+                                                     Aucun service configuré pour le moment.
+                                                 </td>
+                                             </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </TableScrollArea>
                         </div>
                     </Tab.Panel>
                 </Tab.Panels>

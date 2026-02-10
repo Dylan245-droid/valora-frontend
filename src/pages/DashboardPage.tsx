@@ -30,7 +30,7 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [deptFilter, setDeptFilter] = useState('ALL')
   const [searchFilter, setSearchFilter] = useState('')
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table')
   const [dateStart, setDateStart] = useState('')
   const [dateEnd, setDateEnd] = useState('')
   const [activeTab, setActiveTab] = useState<'NEEDS' | 'ORDERS'>('NEEDS')

@@ -7,6 +7,7 @@ import UserModal from '../components/UserModal'
 import ImportUsersModal from '../components/ImportUsersModal'
 import UserCard from '../components/ui/UserCard'
 import { getStorageUrl } from '../utils/config'
+import { TableScrollArea } from '../components/ui/TableScrollArea'
 
 export default function UsersPage() {
     const navigate = useNavigate()
@@ -170,75 +171,77 @@ export default function UsersPage() {
                     </div>
                 ) : (
                     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm mb-12">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50/50">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Utilisateur</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Rôle</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Entité</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Département</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Naissance</th>
-                                    <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 bg-white">
-                                {users.map((user) => (
-                                    <tr key={user.id} className="hover:bg-gray-50 transition-colors group">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                             <div className="flex items-center">
-                                                <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500 overflow-hidden">
-                                                    {user.avatarUrl ? (
-                                                        <img 
-                                                            src={getStorageUrl(user.avatarUrl)} 
-                                                            alt={user.fullName || ''} 
-                                                            className="h-full w-full object-cover" 
-                                                        />
-                                                    ) : (
-                                                        user.fullName?.charAt(0) || 'U'
-                                                    )}
-                                                </div>
-                                                <div className="ml-4">
-                                                    <div className="text-sm font-bold text-gray-900">{user.fullName}</div>
-                                                    <div className="text-xs text-gray-500">{user.email}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                                ${user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 
-                                                  user.role === 'MANAGER' ? 'bg-indigo-100 text-indigo-800' : 
-                                                  'bg-gray-100 text-gray-800'}`}>
-                                                {user.role}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
-                                            {user.department?.entity?.name || '-'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {user.department?.name || '-'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {user.dateOfBirth ? (
-                                                <div className="flex flex-col">
-                                                    <span>{new Date(user.dateOfBirth).toLocaleDateString()}</span>
-                                                    <span className="text-xs text-gray-400">{user.placeOfBirth}</span>
-                                                </div>
-                                            ) : '-'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <div className="flex justify-end gap-2">
-                                                <button onClick={() => handleEdit(user)} className="text-indigo-600 hover:text-indigo-900 p-1 bg-indigo-50 rounded-lg transition-colors">
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                                </button>
-                                                <button onClick={() => handleDelete(user.id)} className="text-rose-600 hover:text-rose-900 p-1 bg-rose-50 rounded-lg transition-colors">
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                </button>
-                                            </div>
-                                        </td>
+                        <TableScrollArea>
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50/50">
+                                    <tr>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Utilisateur</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Rôle</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Entité</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Département</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Naissance</th>
+                                        <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 bg-white">
+                                    {users.map((user) => (
+                                        <tr key={user.id} className="hover:bg-gray-50 transition-colors group">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                 <div className="flex items-center">
+                                                    <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500 overflow-hidden">
+                                                        {user.avatarUrl ? (
+                                                            <img 
+                                                                src={getStorageUrl(user.avatarUrl)} 
+                                                                alt={user.fullName || ''} 
+                                                                className="h-full w-full object-cover" 
+                                                            />
+                                                        ) : (
+                                                            user.fullName?.charAt(0) || 'U'
+                                                        )}
+                                                    </div>
+                                                    <div className="ml-4">
+                                                        <div className="text-sm font-bold text-gray-900">{user.fullName}</div>
+                                                        <div className="text-xs text-gray-500">{user.email}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                                    ${user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 
+                                                      user.role === 'MANAGER' ? 'bg-indigo-100 text-indigo-800' : 
+                                                      'bg-gray-100 text-gray-800'}`}>
+                                                    {user.role}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
+                                                {user.department?.entity?.name || '-'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {user.department?.name || '-'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {user.dateOfBirth ? (
+                                                    <div className="flex flex-col">
+                                                        <span>{new Date(user.dateOfBirth).toLocaleDateString()}</span>
+                                                        <span className="text-xs text-gray-400">{user.placeOfBirth}</span>
+                                                    </div>
+                                                ) : '-'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <div className="flex justify-end gap-2">
+                                                    <button onClick={() => handleEdit(user)} className="text-indigo-600 hover:text-indigo-900 p-1 bg-indigo-50 rounded-lg transition-colors">
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                                    </button>
+                                                    <button onClick={() => handleDelete(user.id)} className="text-rose-600 hover:text-rose-900 p-1 bg-rose-50 rounded-lg transition-colors">
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </TableScrollArea>
                     </div>
                 )}
             

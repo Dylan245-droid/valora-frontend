@@ -19,9 +19,9 @@ interface RequestProps {
       }
   };
   stage?: string;
-  invoiceNumber?: string;
-  invoiceReceivedAt?: string;
-  paymentDueAt?: string;
+  invoiceNumber?: string | null;
+  invoiceReceivedAt?: string | null;
+  paymentDueAt?: string | null;
   downPaymentAmount?: number;
   // other fields as needed for export
   [key: string]: any; 
@@ -70,7 +70,6 @@ export default function RequestFilters({
         // Format data for Excel
         // Format data for Excel
         const data = requestsToExport.map(r => ({
-            ID: r.id,
             Titre: r.title,
             Demandeur: r.user?.fullName || 'N/A',
             Entité: r.user?.department?.entity?.name || 'N/A',
@@ -82,8 +81,10 @@ export default function RequestFilters({
             'Numéro Facture': r.invoiceNumber || '',
             'Date Réception Facture': formatDate(r.invoiceReceivedAt),
             'Date Échéance': formatDate(r.paymentDueAt),
-            'Acompte': r.downPaymentAmount || 0,
-            'Reste à payer': (r.totalEstimatedAmount || 0) - (r.downPaymentAmount || 0)
+            'Code Général': r.analyticalCode?.activity?.project?.catalog?.code || r.analyticalCode?.project?.catalog?.code || '',
+            'Code Spécifique': r.analyticalCode?.activity?.project?.code || r.analyticalCode?.project?.code || '',
+            'Code Département': r.analyticalCode?.activity?.code || '',
+            'Code Identitaire': r.analyticalCode?.code || ''
         }))
 
         // Create Worksheet

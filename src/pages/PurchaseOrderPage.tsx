@@ -3,9 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/client'
 import { type PurchaseRequest } from '../types/request'
 import { format } from 'date-fns'
-import { fr } from 'date-fns/locale'
-import { formatCurrency } from '../utils/formatting'
 import toast from 'react-hot-toast'
+import { getStorageUrl } from '../utils/config'
 
 export default function PurchaseOrderPage() {
     const { id } = useParams()
@@ -36,129 +35,210 @@ export default function PurchaseOrderPage() {
     }
 
     const selectedQuote = request.quotes?.find(q => q.id === request.selectedQuoteId)
+    const entity = request.user?.department?.entity
 
     return (
-        <div className="bg-white min-h-screen p-8 text-gray-900 font-sans print:p-0">
+        <div className="bg-gray-100 min-h-screen p-8 print:p-0 print:bg-white">
             {/* Header / Actions (Hidden in Print) */}
-            <div className="max-w-4xl mx-auto mb-8 flex justify-between items-center print:hidden">
+            <div className="max-w-4xl mx-auto mb-6 flex justify-between items-center print:hidden">
                 <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-900 flex items-center gap-2">
                     ← Retour
                 </button>
-                <div className="flex gap-4">
-                    <button 
-                        onClick={handlePrint}
-                        className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold shadow hover:bg-indigo-700 transition"
-                    >
-                        Imprimer / PDF
-                    </button>
-                </div>
+                <button 
+                    onClick={handlePrint}
+                    className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold shadow hover:bg-indigo-700 transition"
+                >
+                    Imprimer / PDF
+                </button>
             </div>
 
             {/* Document Content */}
-            <div className="max-w-4xl mx-auto border border-gray-200 p-12 shadow-sm print:shadow-none print:border-none print:m-0 print:w-full">
-                {/* Header */}
-                <div className="flex justify-between items-start border-b border-gray-100 pb-8 mb-8">
-                    <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="h-10 w-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
-                                {request.user?.department?.entity?.name?.charAt(0) || 'O'}
+            <div className="max-w-4xl mx-auto bg-white shadow-lg print:shadow-none print:m-0 print:w-full">
+                
+                {/* Header Section */}
+                <div className="border-b-4 border-red-700 p-8 pb-6">
+                    <div className="flex items-center gap-4">
+                        {entity?.logo ? (
+                            <img 
+                                src={getStorageUrl(entity.logo)} 
+                                alt={entity.name} 
+                                className="h-16 w-16 object-contain"
+                            />
+                        ) : (
+                            <div className="h-16 w-16 bg-indigo-900 rounded-lg flex items-center justify-center text-white font-bold text-2xl">
+                                {entity?.name?.charAt(0) || 'O'}
                             </div>
-                            <span className="text-2xl font-black tracking-tight text-indigo-900">
-                                {request.user?.department?.entity?.name || 'OKIVEL'}
-                            </span>
+                        )}
+                        <div>
+                            <h1 className="text-4xl font-black tracking-tight text-gray-900">
+                                Bon de commande
+                            </h1>
+                            {/* PO Number Box - Always visible */}
+                            <div className="mt-2 border-2 border-green-600 px-8 py-1 text-center inline-block">
+                                <span className="text-xl font-mono font-bold text-gray-900">
+                                    {request.sequenceNumber || request.poNumber || `${String(request.id).padStart(4, '0')}`}
+                                </span>
+                            </div>
                         </div>
-                        <p className="text-sm text-gray-500">
-                             {request.user?.department?.entity?.name ? 'Entity' : 'Enterprise Edition'}
-                        </p>
-                    </div>
-                    <div className="text-right">
-                        <h1 className="text-3xl font-black text-gray-900 uppercase tracking-widest">Bon de Commande</h1>
-                        <p className="text-gray-500 font-medium mt-1">Réf: PO-{new Date().getFullYear()}-{request.id.toString().padStart(4, '0')}</p>
-                        <p className="text-sm text-gray-400 mt-1">Date: {format(new Date(), 'dd MMMM yyyy', { locale: fr })}</p>
                     </div>
                 </div>
 
-                {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-12 mb-12">
-                    <div>
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Fournisseur</h3>
-                        {selectedQuote ? (
-                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                <p className="font-bold text-lg text-gray-900">{selectedQuote.supplierName}</p>
+                {/* Company Info Section */}
+                <div className="p-8 pb-4 border-b border-gray-200">
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900">{entity?.name}</h2>
+                            <p className="text-sm text-gray-600">{entity?.address || 'Port-Gentil, Gabon'}</p>
+                            <div className="flex gap-4 text-sm text-gray-600">
+                                {entity?.nif && <p>NIF : {entity.nif}</p>}
+                                {entity?.poBox && <p>BP : {entity.poBox}</p>}
                             </div>
-                        ) : (
-                            <p className="text-gray-400 italic">Aucun fournisseur sélectionné</p>
-                        )}
+                            {entity?.phone && <p className="text-sm text-gray-600">Téléphone : {entity.phone}</p>}
+                        </div>
                     </div>
-                    <div>
-                         <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Livrer à</h3>
-                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                            <p className="font-bold text-gray-900">{request.user?.fullName}</p>
-                            <p className="text-sm text-gray-600">{request.user?.email}</p>
-                            <p className="text-sm text-gray-600 mt-1">
-                                {request.user?.department?.entity?.name} - {request.user?.department?.name}
-                            </p>
-                         </div>
+
+                    {/* Info Table */}
+                    <div className="flex gap-8">
+                        <div className="flex-1">
+                            <table className="text-sm">
+                                <tbody>
+                                    <tr>
+                                        <td className="py-1 pr-4 text-gray-500 font-medium">Date :</td>
+                                        <td className="py-1 font-semibold">{format(new Date(), 'dd/MM/yyyy')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="py-1 pr-4 text-gray-500 font-medium">Contact client :</td>
+                                        <td className="py-1 font-semibold">{selectedQuote?.supplierName || 'Non sélectionné'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="py-1 pr-4 text-gray-500 font-medium">Émis par :</td>
+                                        <td className="py-1 font-semibold">{request.user?.fullName}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="py-1 pr-4 text-gray-500 font-medium">Code général :</td>
+                                        <td className="py-1">
+                                            <div className="flex justify-between min-w-[200px]">
+                                                <span>{request.analyticalCode?.activity?.project?.catalog?.name || '-'}</span>
+                                                <span className="font-mono text-right ml-8">{request.analyticalCode?.activity?.project?.catalog?.code || '-'}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td className="py-1 pr-4 text-gray-500 font-medium">Code Spécifique :</td>
+                                        <td className="py-1">
+                                            <div className="flex justify-between min-w-[200px]">
+                                                <span>{request.analyticalCode?.activity?.project?.name || '-'}</span>
+                                                <span className="font-mono text-right ml-8">{request.analyticalCode?.activity?.project?.code || '-'}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td className="py-1 pr-4 text-gray-500 font-medium">Code Département :</td>
+                                        <td className="py-1">
+                                            <div className="flex justify-between min-w-[200px]">
+                                                <span>{request.analyticalCode?.activity?.name || request.user?.department?.name || '-'}</span>
+                                                <span className="font-mono text-right ml-8">{request.analyticalCode?.activity?.code || '-'}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        {/* Client name - without label */}
+                        <div className="flex-1 text-right">
+                            <p className="text-xl font-bold text-gray-900">{selectedQuote?.supplierName || 'Non sélectionné'}</p>
+                        </div>
                     </div>
                 </div>
 
                 {/* Items Table */}
-                <div className="mb-12">
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Détails de la commande</h3>
-                    <table className="w-full">
+                <div className="p-8">
+                    <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="border-b-2 border-gray-100 text-left">
-                                <th className="py-3 font-bold text-gray-600 text-sm">Description</th>
-                                <th className="py-3 font-bold text-gray-600 text-sm w-24 text-center">Qté</th>
-                                <th className="py-3 font-bold text-gray-600 text-sm w-32 text-right">Prix Unitaire</th>
-                                <th className="py-3 font-bold text-gray-600 text-sm w-32 text-right">Total</th>
+                            <tr className="border-b-2 border-gray-400">
+                                <th className="py-2 text-xs font-bold text-gray-600 uppercase">#</th>
+                                <th className="py-2 text-xs font-bold text-gray-600 uppercase">Désignation</th>
+                                <th className="py-2 text-xs font-bold text-gray-600 uppercase text-center w-24">Quantité</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {request.items?.map((item, idx) => (
+                        <tbody className="divide-y divide-gray-100">
+                            {(selectedQuote?.items?.length ? selectedQuote.items : request.items)?.map((item, idx) => (
                                 <tr key={idx}>
-                                    <td className="py-4 text-gray-800 font-medium">{item.description}</td>
-                                    <td className="py-4 text-center text-gray-600">{item.quantity}</td>
-                                    <td className="py-4 text-right text-gray-600">{formatCurrency(item.unitPrice ?? 0)}</td>
-                                    <td className="py-4 text-right font-bold text-gray-900">{formatCurrency(item.totalPrice ?? 0)}</td>
+                                    <td className="py-3 text-sm text-gray-500">{idx + 1}</td>
+                                    <td className="py-3 text-sm font-medium text-gray-900">{item.description}</td>
+                                    <td className="py-3 text-sm text-center">{item.quantity}</td>
                                 </tr>
                             ))}
                         </tbody>
-                        <tfoot>
-                            <tr className="border-t-2 border-gray-100">
-                                <td colSpan={3} className="py-4 text-right font-bold text-gray-500 uppercase text-xs tracking-wider">Total HT</td>
-                                <td className="py-4 text-right font-bold text-xl text-indigo-600">
-                                    {selectedQuote ? formatCurrency(selectedQuote.amount) : formatCurrency(request.totalEstimatedAmount ?? 0)}
-                                </td>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
 
-                {/* Validation Signature Area */}
-                <div className="mt-16 pt-8 border-t border-gray-100">
-                     <div className="grid grid-cols-2 gap-12">
-                         <div>
-                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-8">Validé par</h3>
-                             {request.requestApprovals?.filter(a => a.status === 'APPROVED').map(approval => (
-                                 <div key={approval.id} className="mb-4">
-                                     <p className="font-bold text-gray-900">{approval.approver?.fullName}</p>
-                                     <p className="text-xs text-gray-500">
-                                         Le {approval.approvedAt ? format(new Date(approval.approvedAt), 'dd MMM yyyy à HH:mm', { locale: fr }) : '-'}
-                                     </p>
-                                 </div>
-                             ))}
-                         </div>
-                         <div className="text-right">
-                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-12">Signature Autorisée</h3>
-                             <div className="h-px bg-gray-200 w-full"></div>
-                         </div>
-                     </div>
+                {/* Empty Rows (for additional items/notes) */}
+                <div className="px-8 pb-8 min-h-[100px]">
+                    {/* Placeholder for printing rows or notes */}
                 </div>
 
-                {/* Footer */}
-                <div className="mt-16 text-center text-xs text-gray-400 border-t border-gray-50 pt-8">
-                    <p>Ce document est généré électroniquement par OKIVEL Enterprise Edition.</p>
+                {/* Visa Sections */}
+                <div className="border-t border-gray-200 p-8">
+                    <div className="grid grid-cols-2 gap-8">
+                        <div>
+                            <p className="text-sm font-bold text-gray-700 mb-4">Visa Service Achat</p>
+                            <div className="h-20 border border-gray-300 rounded"></div>
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-purple-700 mb-4">
+                                Visa DG: {entity?.address?.split(',')[0] || 'POG'}, le {format(new Date(), 'dd/MM/yyyy')}
+                            </p>
+                            <div className="h-20 border border-gray-300 rounded"></div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer: Siège social + Détails bancaires */}
+                <div className="border-t-2 border-gray-300 p-8 bg-gray-50 print:bg-white">
+                    <div className="grid grid-cols-2 gap-8 text-sm">
+                        {/* Siège social */}
+                        <div>
+                            <h4 className="font-bold text-gray-900 mb-2">Siège social</h4>
+                            <p className="text-gray-600">{entity?.address || 'Port-Gentil'}</p>
+                            {entity?.nif && <p className="text-gray-600">NIF : {entity.nif}</p>}
+                            {entity?.poBox && <p className="text-gray-600">BP : {entity.poBox}</p>}
+                        </div>
+
+                        {/* Détails bancaires */}
+                        <div>
+                            <h4 className="font-bold text-gray-900 mb-2">Détails bancaires</h4>
+                            {entity?.bankName ? (
+                                <table className="text-gray-600">
+                                    <tbody>
+                                        <tr>
+                                            <td className="pr-4">Banque</td>
+                                            <td className="font-medium">{entity.bankName}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="pr-4">Code banque</td>
+                                            <td className="font-mono">{entity.bankCode || '-'}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="pr-4">N° de compte</td>
+                                            <td className="font-mono">{entity.bankAccount || '-'}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="pr-4">IBAN</td>
+                                            <td className="font-mono">{entity.iban || '-'}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="pr-4">SWIFT/BIC</td>
+                                            <td className="font-mono">{entity.swift || '-'}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            ) : (
+                                <p className="text-gray-400 italic">Non configuré</p>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

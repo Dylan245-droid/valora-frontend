@@ -100,6 +100,27 @@ export default function AdminDashboardPage() {
                 </div>
             </div>
         </Card>
+
+        {/* Analytical Settings Card */}
+        <Card 
+            onClick={() => navigate('/admin/analytical-settings')}
+            className="p-10 cursor-pointer group hover:border-indigo-200 shadow-sm border-gray-100 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500 relative overflow-hidden rounded-3xl"
+        >
+            <div className="absolute right-0 top-0 h-32 w-32 bg-indigo-50/50 rounded-bl-full translate-x-12 -translate-y-12 group-hover:scale-150 transition-transform duration-700" />
+            
+            <div className="relative z-10 flex flex-col h-full">
+                <div className="h-16 w-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mb-8 shadow-lg shadow-indigo-200 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                </div>
+                <h2 className="text-2xl font-extrabold text-gray-900 mb-3 uppercase tracking-tight">Codes Analytiques</h2>
+                <p className="text-gray-400 font-medium mb-10 flex-1 leading-relaxed text-sm">Gérez les axes analytiques : Codes Généraux, Spécifiques et Identitaires.</p>
+                <div className="flex items-center text-indigo-600 font-bold text-sm tracking-wide group-hover:translate-x-3 transition-transform duration-300">
+                    CONFIGURER <svg className="ml-2 w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                </div>
+            </div>
+        </Card>
       </div>
     </div>
   )

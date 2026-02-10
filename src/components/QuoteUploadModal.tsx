@@ -17,12 +17,49 @@ export default function QuoteUploadModal({ isOpen, onClose, requestId, onSuccess
     const [file, setFile] = useState<File | null>(null)
     const [loading, setLoading] = useState(false)
 
+    interface QuoteItem {
+        description: string
+        quantity: number
+    }
+
+    const [items, setItems] = useState<QuoteItem[]>([])
+
     if (!isOpen) return null
+
+    // Update amount when items change (optional, or just use as reference)
+    // Actually, user might want to set amount independently (e.g. tax included)
+    // Let's just calculate sum for display.
+
+    const addItem = () => {
+        setItems([...items, { description: '', quantity: 1 }])
+    }
+
+    const removeItem = (index: number) => {
+        setItems(items.filter((_, i) => i !== index))
+    }
+
+    const updateItem = (index: number, field: keyof QuoteItem, value: string | number) => {
+        const newItems = [...items]
+        newItems[index] = { ...newItems[index], [field]: value }
+        setItems(newItems)
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!file || !supplierName || !amount) {
-            toast.error('Veuillez remplir tous les champs')
+            toast.error('Veuillez remplir tous les champs obligatoires')
+            return
+        }
+
+        // Validate at least one article with quantity >= 1
+        if (items.length === 0) {
+            toast.error('Veuillez ajouter au moins un article')
+            return
+        }
+
+        const invalidItem = items.find(item => !item.description.trim() || item.quantity < 1)
+        if (invalidItem) {
+            toast.error('Chaque article doit avoir une description et une quantité supérieure ou égale à 1')
             return
         }
 
@@ -31,6 +68,11 @@ export default function QuoteUploadModal({ isOpen, onClose, requestId, onSuccess
         formData.append('supplierName', supplierName)
         formData.append('amount', amount)
         formData.append('file', file)
+        
+        // Pass items as JSON string because FormData handles strings/files
+        if (items.length > 0) {
+            formData.append('items', JSON.stringify(items))
+        }
 
         try {
             await api.post(`/purchase-requests/${requestId}/quotes`, formData, {
@@ -42,6 +84,7 @@ export default function QuoteUploadModal({ isOpen, onClose, requestId, onSuccess
             setSupplierName('')
             setAmount('')
             setFile(null)
+            setItems([])
         } catch (error) {
             console.error(error)
             toast.error("Erreur lors de l'ajout du devis")
@@ -138,7 +181,63 @@ export default function QuoteUploadModal({ isOpen, onClose, requestId, onSuccess
                                         </div>
                                     </div>
 
-                                <div className="px-10 py-8 bg-gray-50/30 flex justify-end gap-4">
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center border-b pb-2 mb-2">
+                                            <label className="block text-sm font-bold text-gray-900 uppercase tracking-wider">Détails de la commande (Articles)</label>
+                                            <Button type="button" variant="outline" onClick={addItem} className="text-xs py-1 px-3">
+                                                + Ajouter un article
+                                            </Button>
+                                        </div>
+                                        
+                                        {items.length === 0 && (
+                                            <div className="text-center py-4 bg-gray-50 rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 italic">
+                                                Aucun article spécifié. Le Bon de Commande utilisera les articles de la demande initiale.
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-3 max-h-60 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                                            {items.map((item, index) => (
+                                                <div key={index} className="flex gap-2 items-center bg-gray-50 p-2 rounded-lg border border-gray-200">
+                                                    <div className="flex-grow">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Description (ex: Laptop Dell XPS 15)"
+                                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-1.5 px-2"
+                                                            value={item.description}
+                                                            onChange={(e) => updateItem(index, 'description', e.target.value)}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className="w-20">
+                                                        <input
+                                                            type="number"
+                                                            placeholder="Qté"
+                                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-1.5 px-2 text-center"
+                                                            value={item.quantity}
+                                                            onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 1)}
+                                                            min="1"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => removeItem(index)}
+                                                        className="text-red-400 hover:text-red-600 p-1 rounded-full hover:bg-red-50"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        
+                                        {items.length > 0 && (
+                                            <div className="text-right text-sm font-bold text-gray-700">
+                                                Total Articles: {items.length}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                <div className="px-10 py-8 bg-gray-50/30 flex justify-end gap-4 mt-4">
                                         <Button type="button" variant="outline" onClick={onClose} className="rounded-xl px-6 font-bold text-gray-500 border-gray-200">
                                             Annuler
                                         </Button>

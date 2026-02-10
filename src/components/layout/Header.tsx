@@ -1,4 +1,5 @@
 import NotificationBell from './NotificationBell'
+import PaymentReminderBell from './PaymentReminderBell'
 import { useAuth } from '../../context/AuthContext'
 import { Fragment } from 'react'
 import { Menu, Transition } from '@headlessui/react'
@@ -21,6 +22,8 @@ export default function Header() {
             </div>
 
             <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6 justify-end items-center">
+                <PaymentReminderBell />
+                <div className="h-6 w-px bg-gray-100 mx-1" aria-hidden="true" />
                 <NotificationBell />
                 <div className="h-6 w-px bg-gray-200" aria-hidden="true" />
                 <div className="flex items-center gap-x-4 lg:gap-x-6">

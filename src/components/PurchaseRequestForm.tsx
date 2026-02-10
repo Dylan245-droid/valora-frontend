@@ -1,6 +1,8 @@
+
+import { Button } from './ui/Button'
+import AnalyticalSelector from './AnalyticalSelector'
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button } from './ui/Button'
 import { Card } from './ui/Card'
 import toast from 'react-hot-toast'
 import { formatCurrency } from '../utils/formatting'
@@ -42,6 +44,7 @@ export default function PurchaseRequestForm({
   const [items, setItems] = useState<Item[]>(initialData?.items || [{ description: '', quantity: 1, unitPrice: 0 }])
   const [total, setTotal] = useState(0)
   const [files, setFiles] = useState<File[]>([])
+  const [analyticalCodeId, setAnalyticalCodeId] = useState<number | null>(null)
 
   useEffect(() => {
     if (initialData) {
@@ -86,12 +89,13 @@ export default function PurchaseRequestForm({
         return
     }
 
-    const data: any = { title, description }
+    const data: any = { title, description, analytical_code_id: analyticalCodeId }
     
     if (files.length > 0 && showAttachments) {
         const formData = new FormData()
         formData.append('title', title)
         formData.append('description', description)
+        if (analyticalCodeId) formData.append('analytical_code_id', analyticalCodeId.toString())
         
         if (showItems) {
             items.forEach((item, index) => {
@@ -163,6 +167,10 @@ export default function PurchaseRequestForm({
                             placeholder="Pourquoi cet achat est-il nécessaire ?"
                         />
                     </div>
+                 </div>
+
+                 <div className="mt-8 border-t border-gray-100 pt-6">
+                    <AnalyticalSelector onCodeSelect={setAnalyticalCodeId} disabled={loading} />
                  </div>
               </Card>
 

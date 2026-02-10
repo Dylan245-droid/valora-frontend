@@ -1,0 +1,27 @@
+/* Cross-browser scrollbar styling */
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f9fafb; /* gray-300 gray-50 */
+}
+
+/* Chrome, Edge, Safari */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f9fafb; /* gray-50 */
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1; /* gray-300 */
+    border-radius: 4px;
+    border: 2px solid #f9fafb;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8; /* gray-400 */
+}

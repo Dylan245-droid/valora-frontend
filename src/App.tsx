@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { NotificationProvider } from './context/NotificationContext'
+import { RequestModalProvider } from './context/RequestModalContext'
 import LoginPage from './pages/LoginPage'
 import CreateRequestPage from './pages/CreateRequestPage'
 import DashboardPage from './pages/DashboardPage'
@@ -14,9 +15,11 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 
 import PrintRequestPage from './pages/PrintRequestPage'
+import PurchaseOrderPage from './pages/PurchaseOrderPage'
 import ProfilePage from './pages/ProfilePage'
 import AnalyticsPage from './pages/admin/AnalyticsPage'
 import OrganizationPage from './pages/admin/OrganizationPage'
+import AnalyticalSettingsPage from './pages/admin/AnalyticalSettingsPage'
 
 const PrivateRoute = ({ children, allowedRoles, noLayout }: { children: ReactNode, allowedRoles?: string[], noLayout?: boolean }) => {
   const { isAuthenticated, loading, user } = useAuth()
@@ -55,70 +58,84 @@ function App() {
   return (
     <AuthProvider>
         <NotificationProvider>
-            <BrowserRouter>
-                <Routes>
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                    <Route path="/reset-password" element={<ResetPasswordPage />} />
-                    
-                    {/* Print Route (No Layout) */}
-                    <Route path="/print-request/:id" element={
-                        <PrivateRoute noLayout>
-                            <PrintRequestPage />
-                        </PrivateRoute>
-                    } />
-                    
-                    {/* Admin Routes */}
-                    <Route path="/admin" element={
-                        <PrivateRoute allowedRoles={['ADMIN']}>
-                            <AdminDashboardPage />
-                        </PrivateRoute>
-                    } />
-                    <Route path="/admin/users" element={
-                        <PrivateRoute allowedRoles={['ADMIN']}>
-                            <UsersPage />
-                        </PrivateRoute>
-                    } />
-                    <Route path="/admin/groups" element={
-                        <PrivateRoute allowedRoles={['ADMIN']}>
-                            <ApprovalGroupsPage />
-                        </PrivateRoute>
-                    } />
-                    <Route path="/admin/analytics" element={
-                        <PrivateRoute allowedRoles={['ADMIN']}>
-                            <AnalyticsPage />
-                        </PrivateRoute>
-                    } />
-                     <Route path="/admin/organization" element={
-                        <PrivateRoute allowedRoles={['ADMIN']}>
-                            <OrganizationPage />
-                        </PrivateRoute>
-                    } />
-                    
-                    <Route path="/profile" element={
-                        <PrivateRoute>
-                            <ProfilePage />
-                        </PrivateRoute>
-                    } />
+            <RequestModalProvider>
+                <BrowserRouter>
+                    <Routes>
+                        <Route path="/login" element={<LoginPage />} />
+                        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                        <Route path="/reset-password" element={<ResetPasswordPage />} />
+                        
+                        {/* Print Route (No Layout) */}
+                        <Route path="/print-request/:id" element={
+                            <PrivateRoute noLayout>
+                                <PrintRequestPage />
+                            </PrivateRoute>
+                        } />
+                        
+                        <Route path="/purchase-order/:id" element={
+                            <PrivateRoute noLayout>
+                                <PurchaseOrderPage />
+                            </PrivateRoute>
+                        } />
+                        
+                        {/* Admin Routes */}
+                        <Route path="/admin" element={
+                            <PrivateRoute allowedRoles={['ADMIN']}>
+                                <AdminDashboardPage />
+                            </PrivateRoute>
+                        } />
+                        <Route path="/admin/users" element={
+                            <PrivateRoute allowedRoles={['ADMIN']}>
+                                <UsersPage />
+                            </PrivateRoute>
+                        } />
+                        <Route path="/admin/groups" element={
+                            <PrivateRoute allowedRoles={['ADMIN']}>
+                                <ApprovalGroupsPage />
+                            </PrivateRoute>
+                        } />
+                        <Route path="/admin/analytics" element={
+                            <PrivateRoute allowedRoles={['ADMIN']}>
+                                <AnalyticsPage />
+                            </PrivateRoute>
+                        } />
+                        <Route path="/admin/organization" element={
+                            <PrivateRoute allowedRoles={['ADMIN']}>
+                                <OrganizationPage />
+                            </PrivateRoute>
+                        } />
+                        <Route path="/admin/analytical-settings" element={
+                            <PrivateRoute allowedRoles={['ADMIN']}>
+                                <AnalyticalSettingsPage />
+                            </PrivateRoute>
+                        } />
+                        
+                        <Route path="/profile" element={
+                            <PrivateRoute>
+                                <ProfilePage />
+                            </PrivateRoute>
+                        } />
 
-                    {/* Operational Routes (All staff except ADMIN) */}
-                    <Route path="/create-request" element={
-                        <PrivateRoute allowedRoles={['EMPLOYEE', 'MANAGER', 'BUYER', 'ACCOUNTANT']}>
-                            <CreateRequestPage />
-                        </PrivateRoute>
-                    } />
-                    <Route path="/edit-request/:id" element={
-                        <PrivateRoute allowedRoles={['EMPLOYEE', 'MANAGER', 'BUYER', 'ACCOUNTANT']}>
-                            <EditRequestPage />
-                        </PrivateRoute>
-                    } />
-                    <Route path="/" element={
-                        <PrivateRoute>
-                            <DashboardDispatcher />
-                        </PrivateRoute>
-                    } />
-                </Routes>
-            </BrowserRouter>
+                        {/* Operational Routes (All staff except ADMIN) */}
+                        <Route path="/create-request" element={
+                            <PrivateRoute allowedRoles={['EMPLOYEE', 'MANAGER', 'BUYER', 'ACCOUNTANT']}>
+                                <CreateRequestPage />
+                            </PrivateRoute>
+                        } />
+                        <Route path="/edit-request/:id" element={
+                            <PrivateRoute allowedRoles={['EMPLOYEE', 'MANAGER', 'BUYER', 'ACCOUNTANT']}>
+                                <EditRequestPage />
+                            </PrivateRoute>
+                        } />
+
+                        <Route path="/" element={
+                            <PrivateRoute>
+                                <DashboardDispatcher />
+                            </PrivateRoute>
+                        } />
+                    </Routes>
+                </BrowserRouter>
+            </RequestModalProvider>
         </NotificationProvider>
     </AuthProvider>
   )

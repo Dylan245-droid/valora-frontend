@@ -1,3 +1,6 @@
+import { type AnalyticalCode } from '../api/analytical'
+import { type Entity } from './organization'
+
 export interface RequestAudit {
     id: number
     action: string
@@ -27,7 +30,17 @@ export interface RequestApproval {
     approver?: {
         id: number
         fullName: string
+        department?: {
+            name: string
+            entity?: Entity
+        }
     }
+}
+
+export interface QuoteItem {
+    id: number
+    description: string
+    quantity: number
 }
 
 export interface Quote {
@@ -36,6 +49,7 @@ export interface Quote {
     amount: number
     filePath?: string
     createdAt: string
+    items?: QuoteItem[]
 }
 
 export interface PurchaseRequest {
@@ -45,6 +59,8 @@ export interface PurchaseRequest {
     description: string | null
     status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'PROCESSING'
     stage: 'NEED' | 'SOURCING' | 'VALIDATION' | 'PENDING_PAYMENT' | 'INVOICED'
+    sequenceNumber?: string | null
+    poNumber?: string | null
     invoiceNumber?: string | null
     invoiceFilePath?: string | null
     invoiceReceivedAt?: string | null
@@ -60,11 +76,7 @@ export interface PurchaseRequest {
         avatarUrl?: string | null
         department?: {
             name: string
-            entity?: {
-                id: number
-                name: string
-                logo?: string
-            }
+            entity?: Entity
         }
     }
     items: {
@@ -79,4 +91,7 @@ export interface PurchaseRequest {
     quotes?: Quote[]
     selectedQuoteId?: number | null
     selectedQuote?: Quote
+    quotesPublished?: boolean
+    analyticalCodeId?: number | null
+    analyticalCode?: AnalyticalCode
 }
