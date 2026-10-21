@@ -12,11 +12,11 @@ interface UserModalProps {
 }
 
 interface Option {
-    id: number
+    id: string | number
     name: string
     minAmount?: number
     maxAmount?: number
-    entityId?: number
+    entityId?: string | number
 }
 
 export default function UserModal({ isOpen, onClose, onSuccess, user }: UserModalProps) {
@@ -48,9 +48,9 @@ export default function UserModal({ isOpen, onClose, onSuccess, user }: UserModa
                     email: user.email,
                     password: '', 
                     role: user.role,
-                    entityId: (departments.find(d => d.id === user.departmentId)?.entityId || '').toString(),
-                    departmentId: user.departmentId?.toString() || '',
-                    approvalGroupId: user.approvalGroupId?.toString() || '',
+                    entityId: (departments.find(d => String(d.id) === String(user.departmentId))?.entityId || '').toString(),
+                    departmentId: user.departmentId ? String(user.departmentId) : '',
+                    approvalGroupId: user.approvalGroupId ? String(user.approvalGroupId) : '',
                     dateOfBirth: user.dateOfBirth?.split('T')[0] || '',
                     placeOfBirth: user.placeOfBirth || '',
                 })
@@ -96,11 +96,9 @@ export default function UserModal({ isOpen, onClose, onSuccess, user }: UserModa
             
             // Clean up payload
             if (!payload.password) delete payload.password
-            if (payload.departmentId) payload.departmentId = parseInt(payload.departmentId)
-            else delete payload.departmentId
+            if (!payload.departmentId) delete payload.departmentId
             
-            if (payload.approvalGroupId) payload.approvalGroupId = parseInt(payload.approvalGroupId)
-            else payload.approvalGroupId = null // Explicitly clear if empty
+            if (!payload.approvalGroupId) payload.approvalGroupId = null // Explicitly clear if empty
             
             if (!payload.dateOfBirth) delete payload.dateOfBirth
             if (!payload.placeOfBirth) delete payload.placeOfBirth
@@ -277,7 +275,7 @@ export default function UserModal({ isOpen, onClose, onSuccess, user }: UserModa
                                                     >
                                                         <option value="">Sélectionner...</option>
                                                         {departments
-                                                            .filter(dept => dept.entityId === parseInt(formData.entityId))
+                                                            .filter(dept => !formData.entityId || String(dept.entityId) === String(formData.entityId))
                                                             .map(dept => (
                                                                 <option key={dept.id} value={dept.id}>{dept.name}</option>
                                                             ))}

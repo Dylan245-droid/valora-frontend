@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import type { ApprovalGroup } from '../types/auth'
+import type { Entity } from '../types/organization'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 
@@ -13,23 +14,27 @@ interface ApprovalGroupModalProps {
 
 export default function ApprovalGroupModal({ isOpen, onClose, onSuccess, group }: ApprovalGroupModalProps) {
     const isEdit = !!group
+    const [entities, setEntities] = useState<Entity[]>([])
     const [formData, setFormData] = useState({
         name: '',
         minAmount: '',
         maxAmount: '',
         level: '1',
-        scope: 'ENTITY'
+        scope: 'ENTITY',
+        entityId: ''
     })
 
     useEffect(() => {
         if (isOpen) {
+            api.get('/entities').then(res => setEntities(res.data)).catch(console.error)
             if (group) {
                 setFormData({
                     name: group.name,
                     minAmount: group.minAmount.toString(),
                     maxAmount: group.maxAmount.toString(),
                     level: group.level.toString(),
-                    scope: group.scope
+                    scope: group.scope,
+                    entityId: group.entityId || ''
                 })
             } else {
                 setFormData({
@@ -37,7 +42,8 @@ export default function ApprovalGroupModal({ isOpen, onClose, onSuccess, group }
                     minAmount: '0',
                     maxAmount: '',
                     level: '1',
-                    scope: 'ENTITY'
+                    scope: 'ENTITY',
+                    entityId: ''
                 })
             }
         }
@@ -51,7 +57,8 @@ export default function ApprovalGroupModal({ isOpen, onClose, onSuccess, group }
                 minAmount: parseFloat(formData.minAmount),
                 maxAmount: parseFloat(formData.maxAmount),
                 level: parseInt(formData.level),
-                scope: formData.scope
+                scope: formData.scope,
+                entityId: formData.entityId || null
             }
 
             if (isEdit && group) {
@@ -165,6 +172,25 @@ export default function ApprovalGroupModal({ isOpen, onClose, onSuccess, group }
                                                 <div className="text-[10px] text-gray-500 leading-tight">Valide pour toutes les entités de la holding.</div>
                                             </button>
                                         </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Entité de rattachement (Optionnel)</label>
+                                        <select
+                                            className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5 px-3 bg-gray-50/50 focus:bg-white transition-colors"
+                                            value={formData.entityId}
+                                            onChange={e => setFormData({ ...formData, entityId: e.target.value })}
+                                        >
+                                            <option value="">-- Toutes les entités (Règle standard / Générique) --</option>
+                                            {entities.map(ent => (
+                                                <option key={ent.id} value={ent.id}>
+                                                    {ent.name} {ent.code ? `(${ent.code})` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Laissez vide pour une règle générique applicable à tout le groupe, ou sélectionnez une entité pour restreindre ce groupe à une société précise.
+                                        </p>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-6">

@@ -40,7 +40,7 @@ export default function ApprovalGroupsPage() {
         setIsModalOpen(true)
     }
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string | number) => {
         if(!confirm('Êtes-vous sûr ? Supprimer un groupe peut affecter les utilisateurs qui y sont assignés (ils perdront leur limite).')) return
         try {
             await api.delete(`/approval-groups/${id}`)
@@ -149,9 +149,20 @@ export default function ApprovalGroupsPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${group.scope === 'GLOBAL' ? 'bg-indigo-900 text-white' : 'bg-gray-100 text-gray-500'}`}>
-                                                    {group.scope === 'GLOBAL' ? '🌍 Globale' : '🏢 Locale'}
-                                                </span>
+                                                <div className="flex flex-col gap-1">
+                                                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit ${group.scope === 'GLOBAL' ? 'bg-indigo-900 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                                                        {group.scope === 'GLOBAL' ? '🌍 Globale' : '🏢 Locale'}
+                                                    </span>
+                                                    {group.entity ? (
+                                                        <span className="text-xs font-semibold text-blue-700">
+                                                            🏢 {group.entity.name}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400 italic">
+                                                            Standard (Toutes)
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <button onClick={() => handleEdit(group)} className="text-indigo-600 hover:text-indigo-900 font-bold mr-4">Modifier</button>

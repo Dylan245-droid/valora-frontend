@@ -15,13 +15,13 @@ interface DepartmentModalProps {
 
 export default function DepartmentModal({ isOpen, onClose, department, entities, onSuccess }: DepartmentModalProps) {
     const [name, setName] = useState('')
-    const [entityId, setEntityId] = useState<number | ''>('')
+    const [entityId, setEntityId] = useState<string>('')
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
         if (department) {
             setName(department.name)
-            setEntityId(department.entityId || '')
+            setEntityId(department.entityId ? String(department.entityId) : '')
         } else {
             setName('')
             setEntityId('')
@@ -125,7 +125,7 @@ export default function DepartmentModal({ isOpen, onClose, department, entities,
                                         <select
                                             className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5 px-3 bg-gray-50/50"
                                             value={entityId}
-                                            onChange={(e) => setEntityId(Number(e.target.value) || '')}
+                                            onChange={(e) => setEntityId(e.target.value)}
                                         >
                                             <option value="">-- Aucune (Non recommandé) --</option>
                                             {entities.map((ent) => (

@@ -10,12 +10,14 @@ interface EntityModalProps {
     isOpen: boolean
     onClose: () => void
     entity?: Entity
+    entities?: Entity[]
     onSuccess: () => void
 }
 
-export default function EntityModal({ isOpen, onClose, entity, onSuccess }: EntityModalProps) {
+export default function EntityModal({ isOpen, onClose, entity, entities = [], onSuccess }: EntityModalProps) {
     const [name, setName] = useState('')
     const [code, setCode] = useState('')
+    const [parentId, setParentId] = useState<string>('')
     const [address, setAddress] = useState('')
     const [phone, setPhone] = useState('')
     const [bankName, setBankName] = useState('')
@@ -32,6 +34,7 @@ export default function EntityModal({ isOpen, onClose, entity, onSuccess }: Enti
         if (entity) {
             setName(entity.name)
             setCode(entity.code || '')
+            setParentId(entity.parentId || '')
             setAddress(entity.address || '')
             setPhone(entity.phone || '')
             setBankName(entity.bankName || '')
@@ -44,6 +47,7 @@ export default function EntityModal({ isOpen, onClose, entity, onSuccess }: Enti
         } else {
             setName('')
             setCode('')
+            setParentId('')
             setAddress('')
             setPhone('')
             setBankName('')
@@ -65,6 +69,7 @@ export default function EntityModal({ isOpen, onClose, entity, onSuccess }: Enti
         const formData = new FormData()
         if (name) formData.append('name', name)
         if (code) formData.append('code', code)
+        formData.append('parentId', parentId || '')
         if (address) formData.append('address', address)
         if (phone) formData.append('phone', phone)
         if (bankName) formData.append('bankName', bankName)
@@ -193,6 +198,29 @@ export default function EntityModal({ isOpen, onClose, entity, onSuccess }: Enti
                                                     />
                                                 </div>
                                             </div>
+                                        </div>
+
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Société Mère / Holding de rattachement
+                                            </label>
+                                            <select
+                                                value={parentId}
+                                                onChange={(e) => setParentId(e.target.value)}
+                                                className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 bg-gray-50/50"
+                                            >
+                                                <option value="">-- Aucune (Société Principale / Holding) --</option>
+                                                {entities
+                                                    .filter((e) => !entity || e.id !== entity.id)
+                                                    .map((e) => (
+                                                        <option key={e.id} value={e.id}>
+                                                            {e.name} {e.code ? `(${e.code})` : ''}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                Si cette entité est une filiale, sélectionnez la holding ou entité parente à laquelle elle est rattachée.
+                                            </p>
                                         </div>
 
                                         {/* Logo Upload */}

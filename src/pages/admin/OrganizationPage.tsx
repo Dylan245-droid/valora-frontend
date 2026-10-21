@@ -53,7 +53,7 @@ export default function OrganizationPage() {
         setIsDeptModalOpen(true)
     }
 
-    const handleDeleteDept = async (id: number) => {
+    const handleDeleteDept = async (id: string) => {
         if (!confirm('Êtes-vous sûr de vouloir supprimer ce service ?')) return
         try {
             await api.delete(`/departments/${id}`)
@@ -64,7 +64,7 @@ export default function OrganizationPage() {
         }
     }
 
-    const handleDeleteEntity = async (id: number) => {
+    const handleDeleteEntity = async (id: string) => {
         if (!confirm('Êtes-vous sûr de vouloir supprimer cette entité ? Attention, cela peut affecter les services liés.')) return
         try {
             await api.delete(`/entities/${id}`)
@@ -144,7 +144,7 @@ export default function OrganizationPage() {
                                     {/* Decorative UI blob from mockup */}
                                     <div className="absolute top-0 right-0 h-32 w-32 bg-indigo-50/50 rounded-bl-full translate-x-8 -translate-y-8 group-hover:scale-125 transition-transform duration-500" />
                                     
-                                    <div className="flex items-start justify-between mb-6 relative z-10">
+                                    <div className="flex items-start justify-between mb-4 relative z-10">
                                          {entity.logo ? (
                                              <div className="h-14 w-14 rounded-xl overflow-hidden shadow-lg shadow-indigo-200 border border-gray-100 bg-white flex items-center justify-center">
                                                  <img src={getStorageUrl(entity.logo)} alt={entity.name} className="h-full w-full object-contain p-1" />
@@ -163,16 +163,36 @@ export default function OrganizationPage() {
                                              </button>
                                          </div>
                                     </div>
+
+                                    {/* Hierarchy Badge */}
+                                    <div className="relative z-10 mb-3">
+                                        {!entity.parentId ? (
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                                👑 Siège / Holding
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                                🏢 Filiale {entity.parent?.name ? `• ${entity.parent.name}` : ''}
+                                            </span>
+                                        )}
+                                    </div>
                                     
                                     <div className="relative z-10">
                                         <h3 className="text-xl font-extrabold text-gray-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{entity.name}</h3>
-                                        <p className="text-sm text-gray-400 mt-2 font-medium">{entity.address || 'Port-Gentil, Gabon'}</p>
+                                        <p className="text-sm text-gray-400 mt-1 font-medium">{entity.address || 'Siège social'}</p>
                                         
-                                        <div className="mt-10 flex items-center justify-between">
-                                             <div className="bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                                                 Code: {entity.code || 'IEGH-2432'}
+                                        <div className="mt-8 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                             <div className="bg-gray-50 px-3 py-1 rounded-lg border border-gray-100 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                                                 {entity.code || 'CODE'}
                                              </div>
-                                             <span className="text-sm font-bold text-gray-600">{entity.departments?.length || 0} Services</span>
+                                             <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                                                 {!entity.parentId && (
+                                                     <span className="text-purple-600">
+                                                         {entities.filter(e => e.parentId === entity.id).length} filiale(s) •
+                                                     </span>
+                                                 )}
+                                                 <span>{entity.departments?.length || 0} service(s)</span>
+                                             </div>
                                         </div>
                                     </div>
                                 </div>
@@ -263,6 +283,7 @@ export default function OrganizationPage() {
                 isOpen={isEntityModalOpen}
                 onClose={() => setIsEntityModalOpen(false)}
                 entity={selectedEntity}
+                entities={entities}
                 onSuccess={fetchAll}
             />
 

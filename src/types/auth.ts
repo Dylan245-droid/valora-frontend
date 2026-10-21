@@ -24,12 +24,18 @@ export interface Department {
 }
 
 export interface ApprovalGroup {
-    id: number
+    id: string | number
     name: string
     minAmount: number
     maxAmount: number
     level: number
     scope: 'ENTITY' | 'GLOBAL'
+    entityId?: string | null
+    entity?: {
+        id: string
+        name: string
+        logo?: string | null
+    }
 }
 
 export interface AuthResponse {

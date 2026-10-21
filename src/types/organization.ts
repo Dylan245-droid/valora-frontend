@@ -1,5 +1,5 @@
 export interface Entity {
-    id: number
+    id: string
     name: string
     code: string | null
     logo: string | null
@@ -12,15 +12,18 @@ export interface Entity {
     swift: string | null
     nif: string | null
     poBox: string | null
+    parentId?: string | null
+    parent?: Entity | null
+    children?: Entity[]
     departments?: Department[]
     createdAt: string
     updatedAt: string
 }
 
 export interface Department {
-    id: number
+    id: string
     name: string
-    entityId: number | null
+    entityId: string | null
     entity?: Entity
     createdAt: string
     updatedAt: string

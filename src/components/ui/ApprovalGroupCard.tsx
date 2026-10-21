@@ -3,7 +3,7 @@ import { type ApprovalGroup } from '../../types/auth'
 interface ApprovalGroupCardProps {
     group: ApprovalGroup
     onEdit: (group: ApprovalGroup) => void
-    onDelete: (id: number) => void
+    onDelete: (id: string | number) => void
 }
 
 export default function ApprovalGroupCard({ group, onEdit, onDelete }: ApprovalGroupCardProps) {
@@ -47,10 +47,19 @@ export default function ApprovalGroupCard({ group, onEdit, onDelete }: ApprovalG
                      </p>
                 </div>
                 
-                <div className="mt-4 flex justify-center">
+                <div className="mt-4 flex flex-col items-center gap-1.5">
                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${group.scope === 'GLOBAL' ? 'bg-indigo-900 text-white' : 'bg-gray-100 text-gray-500'}`}>
                         Portée : {group.scope === 'GLOBAL' ? '🌍 Globale (Holding)' : '🏢 Locale (Entité)'}
                     </span>
+                    {group.entity ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                            🏢 Filiale : {group.entity.name}
+                        </span>
+                    ) : (
+                        <span className="text-[10px] text-gray-400 italic">
+                            Standard (Toutes les filiales)
+                        </span>
+                    )}
                 </div>
             </div>
 
